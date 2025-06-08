@@ -1,5 +1,8 @@
 'use client'
 import { useState, useEffect } from 'react';
+import { useAccount, useConnect, useDisconnect } from 'wagmi';
+import { injected } from 'wagmi/connectors';
+import { ConnectButton } from '@repo/web3'
 
 // NFT metadata interface
 interface NFTMetadata {
@@ -98,32 +101,18 @@ const NFTGallery = () => {
   const [hasMore, setHasMore] = useState(true);
   const [isMinting, setIsMinting] = useState(false);
   const [mintingTokenId, setMintingTokenId] = useState<number | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [address, setAddress] = useState<string | null>(null);
 
-  // Simulate wallet connection
-  const connectWallet = async () => {
-    try {
-      if (typeof window !== 'undefined' && window.ethereum) {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        if (accounts.length > 0) {
-          setIsConnected(true);
-          setAddress(accounts[0]);
-        }
-      } else {
-        setIsConnected(true);
-        setAddress('0x1234...5678');
-      }
-    } catch (err) {
-      console.error('Error connecting wallet:', err);
-      setIsConnected(true);
-      setAddress('0x1234...5678');
+  // Wagmi hooks for wallet management
+  const { address, isConnected } = useAccount();
+  const { connect, connectors, isPending } = useConnect();
+  const { disconnect } = useDisconnect();
+
+  // Wallet connection handler
+  const handleConnect = () => {
+    const injectedConnector = connectors.find(connector => connector.id === 'injected');
+    if (injectedConnector) {
+      connect({ connector: injectedConnector });
     }
-  };
-
-  const disconnectWallet = () => {
-    setIsConnected(false);
-    setAddress(null);
   };
 
   // Function to handle minting
@@ -137,6 +126,7 @@ const NFTGallery = () => {
       setIsMinting(true);
       setMintingTokenId(tokenId);
       
+      // Simulate minting transaction
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       alert(`Successfully minted NFT #${tokenId}!`);
@@ -181,6 +171,7 @@ const NFTGallery = () => {
       setLoading(true);
       setError(null);
       
+      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       const dummyData = generateDummyNFTs(page, 20);
@@ -204,18 +195,18 @@ const NFTGallery = () => {
     fetchNFTs();
   }, [page]);
 
-  // Helper components for wallet connection
+  // Wallet Button Component
   const WalletButton = () => {
-    if (isConnected) {
+    if (isConnected && address) {
       return (
         <div className="flex items-center gap-4">
           <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-2">
             <span className="text-slate-300 text-sm font-medium">
-              {address?.slice(0, 6)}...{address?.slice(-4)}
+              {address.slice(0, 6)}...{address.slice(-4)}
             </span>
           </div>
           <button 
-            onClick={disconnectWallet}
+            onClick={() => disconnect()}
             className="bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-400 hover:text-red-300 font-medium py-2.5 px-5 rounded-xl transition-all duration-300"
           >
             Disconnect
@@ -226,10 +217,11 @@ const NFTGallery = () => {
     
     return (
       <button 
-        onClick={connectWallet}
-        className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold py-2.5 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-emerald-500/25"
+        onClick={handleConnect}
+        disabled={isPending}
+        className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-emerald-500/25"
       >
-        Connect Wallet
+        {isPending ? 'Connecting...' : 'Connect Wallet'}
       </button>
     );
   };
@@ -240,13 +232,23 @@ const NFTGallery = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <div className="absolute inset-0 bg-gradient-to-r from-purple-900/20 to-pink-900/20" />
         <div className="relative z-10 container mx-auto px-6 py-12">
+          {/* Header with wallet button */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-12">
+            <div className="mb-8 lg:mb-0">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent mb-4">
+                Loading Collection
+              </h1>
+            </div>
+            <div className="flex-shrink-0">
+              {/* <WalletButton /> */}
+              <ConnectButton /> 
+            </div>
+          </div>
+          
           <div className="text-center mb-12">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl mb-6 animate-pulse">
               <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
             </div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent mb-4">
-              Loading Collection
-            </h1>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {[...Array(8)].map((_, idx) => (
@@ -301,9 +303,22 @@ const NFTGallery = () => {
           </div>
           
           <div className="flex-shrink-0">
-            <WalletButton />
+            {/* <WalletButton /> */}
+            <ConnectButton />
           </div>
         </div>
+        
+        {/* Connection Status Banner */}
+        {isConnected && address && (
+          <div className="bg-emerald-500/10 backdrop-blur-sm border border-emerald-500/20 rounded-2xl p-4 mb-8">
+            <div className="flex items-center justify-center gap-3">
+              <div className="w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></div>
+              <span className="text-emerald-300 font-medium">
+                Wallet Connected - Ready to mint NFTs!
+              </span>
+            </div>
+          </div>
+        )}
         
         {/* Collection Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
