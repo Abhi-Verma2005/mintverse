@@ -1,0 +1,47 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  publicKey String   @unique // User's wallet address
+  createdAt DateTime @default(now())
+  
+  // Relations
+  mintedNfts Nft[]
+
+  @@map("users")
+}
+
+model Nft {
+  id          String   @id @default(cuid())
+  tokenId     String   // Token ID from the contract
+  
+  // Metadata from API
+  name        String
+  description String?
+  image       String   // Image URL
+  
+  // Minting info
+  mintedAt         DateTime @default(now())
+  transactionHash  String?  // Mint transaction hash
+  
+  // Relations
+  owner       User     @relation(fields: [ownerId], references: [id])
+  ownerId     String
+
+  @@index([ownerId])
+  @@map("nfts")
+}

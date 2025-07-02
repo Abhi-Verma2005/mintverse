@@ -11,12 +11,14 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
+    "@prisma/client": "^6.9.0",
     "@repo/ui": "workspace:*",
     "@repo/web3": "workspace:*",
     "@tailwindcss/postcss": "^4.1.4",
     "ethers": "^6.13.7",
     "next": "^15.3.0",
     "postcss": "^8.5.3",
+    "prisma": "^6.9.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "tailwindcss": "^4.1.4",
