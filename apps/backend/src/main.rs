@@ -1,7 +1,11 @@
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
-
-
+use axum::{
+    Router,
+    routing::{post, get}
+};
+mod auth;
+use auth::signup_handler;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Api_Response<T> {
@@ -37,7 +41,15 @@ impl AppState {
 async fn run_server(mut state: AppState) {
     println!("Server is ready!");
 
-    loop {
-        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-    }
+    let app = Router::new()
+        .route("/api/signup", post(signup_handler));
+
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
+        .await
+        .unwrap();
+
+    println!("🚀 Server running on http://127.0.0.1:3000");
+
+    axum::serve(listener, app).await.unwrap();
 }
+

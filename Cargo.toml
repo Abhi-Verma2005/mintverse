@@ -1,0 +1,4 @@
+[workspace]
+members = [
+  "apps/backend"      # adjust based on your folder structure
+]
