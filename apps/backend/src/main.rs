@@ -7,12 +7,8 @@ use axum::{
 mod auth;
 use auth::signup_handler;
 
-#[derive(Debug, Serialize, Deserialize)]
-struct Api_Response<T> {
-    success: bool,
-    data: Option<T>, 
-    message: String
-}
+
+
 
 
 #[tokio::main]
