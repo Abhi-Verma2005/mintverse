@@ -7,6 +7,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import Navigation from '../../components/Navigation';
+import { NFTDetailsModal } from '../../components/NFTCard';
 
 // Helper function to get safe image URL
 const getSafeImageUrl = (imageUrl: string | null): string => {
@@ -17,7 +18,7 @@ const getSafeImageUrl = (imageUrl: string | null): string => {
 };
 
 // NFT Card Component for My NFTs
-const MyNFTCard = ({ nft }: { nft: NFTResponse }) => {
+const MyNFTCard = ({ nft, onView }: { nft: NFTResponse; onView: (nft: NFTResponse) => void }) => {
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
@@ -106,8 +107,11 @@ const MyNFTCard = ({ nft }: { nft: NFTResponse }) => {
         )}
         
         <div className="flex gap-2 mt-auto">
-          <button className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-purple-500/25 active:scale-95">
-            View on Explorer
+          <button 
+            onClick={() => onView(nft)}
+            className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-purple-500/25 active:scale-95"
+          >
+            View Details
           </button>
           <button className="bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300">
             Share
@@ -141,6 +145,8 @@ const MyNFTsPage = () => {
   const [nfts, setNfts] = useState<NFTResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedNFT, setSelectedNFT] = useState<NFTResponse | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [stats, setStats] = useState({
     totalNFTs: 0,
     confirmedNFTs: 0,
@@ -312,12 +318,29 @@ const MyNFTsPage = () => {
         {!loading && !error && nfts.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 items-stretch">
             {nfts.map((nft) => (
-              <MyNFTCard key={nft.id} nft={nft} />
+              <MyNFTCard 
+                key={nft.id} 
+                nft={nft} 
+                onView={(nft) => {
+                  setSelectedNFT(nft);
+                  setIsModalOpen(true);
+                }}
+              />
             ))}
           </div>
         )}
         </div>
       </div>
+      
+      {/* NFT Details Modal */}
+      <NFTDetailsModal
+        nft={selectedNFT}
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedNFT(null);
+        }}
+      />
     </div>
   );
 };

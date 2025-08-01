@@ -5,6 +5,7 @@ import { ConnectButton } from '@repo/web3';
 import { apiClient, NFTResponse } from '../../lib/api-client';
 import Image from 'next/image';
 import Navigation from '../../components/Navigation';
+import { NFTDetailsModal } from '../../components/NFTCard';
 
 // Helper function to get safe image URL
 const getSafeImageUrl = (imageUrl: string | null): string => {
@@ -132,13 +133,18 @@ const NFTGallery = () => {
   const [stats, setStats] = useState<any>(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [statsError, setStatsError] = useState<string | null>(null);
+  const [selectedNFT, setSelectedNFT] = useState<NFTResponse | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { address, isConnected } = useAccount();
 
   // Function to handle NFT interaction
   const handleNFTInteraction = async (nftId: string) => {
-    // For now, just show an alert. In a real app, this could open a modal or navigate to detail page
-    alert(`Viewing NFT: ${nftId}`);
+    const nft = nfts.find(n => n.id === nftId);
+    if (nft) {
+      setSelectedNFT(nft);
+      setIsModalOpen(true);
+    }
   };
 
   // Function to fetch NFTs from API
@@ -356,6 +362,16 @@ const NFTGallery = () => {
         )}
         </div>
       </div>
+      
+      {/* NFT Details Modal */}
+      <NFTDetailsModal
+        nft={selectedNFT}
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedNFT(null);
+        }}
+      />
     </div>
   );
 };
