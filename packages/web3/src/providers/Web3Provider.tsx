@@ -13,7 +13,7 @@ import { ReactNode } from 'react';
 
 const config = getDefaultConfig({
   appName: 'Mintverse',
-  projectId: 'YOUR_WALLETCONNECT_PROJECT_ID', 
+  projectId: 'demo-project-id-for-mintverse', 
   chains: [sepolia],
   ssr: true, 
 });

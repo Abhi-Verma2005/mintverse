@@ -4,6 +4,7 @@ import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { injected } from 'wagmi/connectors';
+import Navigation from '../components/Navigation';
 
 const NFTLandingPage = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -118,22 +119,7 @@ const NFTLandingPage = () => {
       
       <div className="relative z-10">
         {/* Navigation */}
-        <nav id='nav' className="container mx-auto px-6 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-lg">E</span>
-              </div>
-              <span className="text-white font-bold text-xl">Ethereal Dreams</span>
-            </div>
-            
-            <div className="hidden md:flex items-center space-x-8 text-slate-300">
-              <button onClick={() => scrollToSection('about')} className="hover:text-white transition-colors duration-300">About</button>
-              {/* <WalletButton /> */}
-              <ConnectButton/>
-            </div>
-          </div>
-        </nav>
+        <Navigation />
 
         {/* Hero Section */}
         <section id='hero' className="container mx-auto px-6 py-20">
@@ -158,7 +144,7 @@ const NFTLandingPage = () => {
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 mb-12">
-                {isConnected && <Link href="/nfts">
+                {isConnected && <Link href="/mint">
                   <button 
                   className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-4 px-8 rounded-2xl text-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl hover:shadow-purple-500/25"
                 >
@@ -170,12 +156,10 @@ const NFTLandingPage = () => {
                   View Gallery
                 </button>
                 </Link>
-                {isConnected && <Link href="/nfts">
-                  <button 
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-4 px-8 rounded-2xl text-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl hover:shadow-purple-500/25"
-                >
-                  Start Minting
-                </button>
+                {isConnected && <Link href="/my-nfts">
+                  <button className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-4 px-8 rounded-2xl text-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl hover:shadow-emerald-500/25">
+                  My NFTs
+                  </button>
                 </Link>}
                 
               </div>
@@ -316,13 +300,23 @@ const NFTLandingPage = () => {
               )}
             </div>
             
-            <button 
-              onClick={() => scrollToSection('nav')}
-              disabled={isPending}
-              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 px-12 rounded-2xl text-xl transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/25"
-            >
-              {isPending ? 'Connecting...' : isConnected ? 'Mint Your NFT Now' : 'Connect Wallet to Mint'}
-            </button>
+            {isConnected ? (
+              <Link href="/mint">
+                <button 
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-4 px-12 rounded-2xl text-xl transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/25"
+                >
+                  Mint Your NFT Now
+                </button>
+              </Link>
+            ) : (
+              <button 
+                onClick={() => scrollToSection('nav')}
+                disabled={isPending}
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 px-12 rounded-2xl text-xl transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/25"
+              >
+                {isPending ? 'Connecting...' : 'Connect Wallet to Mint'}
+              </button>
+            )}
           </div>
         </section>
 

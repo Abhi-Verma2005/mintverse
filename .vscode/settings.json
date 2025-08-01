@@ -3,5 +3,29 @@
     {
       "mode": "auto"
     }
-  ]
+  ],
+  "rust-analyzer.linkedProjects": [
+    "apps/backend/Cargo.toml",
+    "apps/backend/migration/Cargo.toml"
+  ],
+  "rust-analyzer.cargo.buildScripts.enable": true,
+  "rust-analyzer.procMacro.enable": true,
+  "rust-analyzer.cargo.loadOutDirsFromCheck": true,
+  "rust-analyzer.workspace.symbol.search.scope": "workspace_and_dependencies",
+  "rust-analyzer.checkOnSave.command": "check",
+  "rust-analyzer.checkOnSave.allTargets": false,
+  "rust-analyzer.cargo.target": null,
+  "rust-analyzer.workspace.discoveryConfig.exclude": [
+    "apps/web",
+    "packages",
+    "node_modules"
+  ],
+  "rust-analyzer.cargo.features": "all",
+  "rust-analyzer.assist.emitMustUse": true,
+  "rust-analyzer.lens.enable": true,
+  "rust-analyzer.lens.implementations.enable": true,
+  "rust-analyzer.lens.references.adt.enable": true,
+  "rust-analyzer.lens.references.trait.enable": true,
+  "rust-analyzer.lens.references.enumVariant.enable": true,
+  "rust-analyzer.lens.references.method.enable": true
 }

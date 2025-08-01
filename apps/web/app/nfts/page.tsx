@@ -1,71 +1,101 @@
 'use client'
-import { useState, useEffect } from 'react';
-import { useAccount, useConnect, useDisconnect } from 'wagmi';
-import { injected } from 'wagmi/connectors';
-import { ConnectButton } from '@repo/web3'
+import React, { useState, useEffect } from 'react';
+import { useAccount } from 'wagmi';
+import { ConnectButton } from '@repo/web3';
+import { apiClient, NFTResponse } from '../../lib/api-client';
+import Image from 'next/image';
+import Navigation from '../../components/Navigation';
 
-// NFT metadata interface
-interface NFTMetadata {
-  name: string;
-  description: string;
-  image: string;
-  tokenId?: number;
-  attributes?: Array<{
-    trait_type: string;
-    value: string | number;
-  }>;
-}
+// Helper function to get safe image URL
+const getSafeImageUrl = (imageUrl: string | null): string => {
+  if (!imageUrl) return 'https://picsum.photos/400/400?random=999';
+  
+  // Return the original image URL - don't modify it
+  return imageUrl;
+};
 
 // NFT Card Component
-const NFTCard = ({ metadata, tokenId, onMint }: { metadata: NFTMetadata; tokenId: number; onMint: (id: number) => void }) => {
-  const displayId = metadata.tokenId !== undefined ? metadata.tokenId : tokenId;
-  
+const NFTCard = ({ nft, onMint }: { nft: NFTResponse; onMint: (id: string) => void }) => {
   return (
-    <div className="group relative bg-white/5 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/20">
-      <div className="relative aspect-square overflow-hidden">
-        {metadata.image ? (
-          <img 
-            src={metadata.image} 
-            alt={metadata.name || `NFT #${displayId}`}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-          />
+    <div className="group relative bg-white/5 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/20 h-full flex flex-col">
+      <div className="relative aspect-square overflow-hidden flex-shrink-0">
+          {nft.image ? (
+            <Image 
+              src={getSafeImageUrl(nft.image)} 
+              alt={nft.name || 'NFT'}
+              width={400}
+              height={400}
+              unoptimized
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+              onError={(e) => {
+                e.currentTarget.src = 'https://picsum.photos/400/400?random=999';
+              }}
+            />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
             <div className="w-16 h-16 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
-              <span className="text-white font-bold text-lg">#{displayId}</span>
+              <span className="text-white font-bold text-lg">#{nft.token_id}</span>
             </div>
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        <div className="absolute top-3 right-3 bg-black/80 backdrop-blur-sm text-white text-xs font-medium py-1.5 px-3 rounded-full border border-white/20">
-          #{displayId}
-        </div>
-      </div>
-      
-      <div className="p-5">
-        <div className="mb-4">
-          <h3 className="text-lg font-semibold text-white mb-2 truncate">{metadata.name || `NFT #${displayId}`}</h3>
-          <p className="text-slate-400 text-sm leading-relaxed line-clamp-2">{metadata.description || 'Unique digital collectible with verified authenticity'}</p>
+        <div className="absolute top-3 right-3 bg-black/80 backdrop-blur-sm text-white text-xs font-medium py-1.5 px-3 rounded-full border border-white/20 max-w-[80px] truncate">
+          #{nft.token_id}
         </div>
         
-        {metadata.attributes && metadata.attributes.length > 0 && (
+        {/* Mint Status Badge */}
+        {nft.mint_status && (
+          <div className={`absolute top-3 left-3 px-2 py-1 rounded-full text-xs font-medium ${
+            nft.mint_status === 'Confirmed' 
+              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+              : nft.mint_status === 'Pending'
+              ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
+              : 'bg-slate-500/20 text-slate-300 border border-slate-500/30'
+          }`}>
+            {nft.mint_status}
+          </div>
+        )}
+      </div>
+      
+      <div className="p-5 flex-1 flex flex-col">
+        <div className="mb-4 flex-1">
+          <h3 className="text-lg font-semibold text-white mb-2 truncate">{nft.name}</h3>
+          <p className="text-slate-400 text-sm leading-relaxed line-clamp-2">{nft.description || 'Unique digital collectible with verified authenticity'}</p>
+        </div>
+        
+        {nft.attributes && nft.attributes.length > 0 && (
           <div className="mb-4 space-y-2">
             <div className="grid grid-cols-2 gap-2">
-              {metadata.attributes.slice(0, 4).map((attr, idx) => (
+              {nft.attributes.slice(0, 4).map((attr, idx) => (
                 <div key={idx} className="bg-white/5 backdrop-blur-sm rounded-lg p-2.5 border border-white/10">
                   <span className="text-slate-400 text-xs font-medium uppercase tracking-wide">{attr.trait_type}</span>
-                  <p className="text-white text-sm font-semibold mt-0.5 truncate">{attr.value.toString()}</p>
+                  <p className="text-white text-sm font-semibold mt-0.5 truncate">{attr.value}</p>
                 </div>
               ))}
             </div>
           </div>
         )}
         
+        {/* Transaction Details */}
+        {nft.transaction_hash && (
+          <div className="mb-4 p-3 bg-white/5 rounded-lg border border-white/10">
+            <div className="text-xs text-slate-400 mb-1">Transaction Hash</div>
+            <div className="text-xs text-white font-mono break-all">
+              {nft.transaction_hash.slice(0, 10)}...{nft.transaction_hash.slice(-8)}
+            </div>
+            {nft.block_number && (
+              <div className="text-xs text-slate-400 mt-1">
+                Block: {nft.block_number} | Gas: {nft.gas_used?.toLocaleString()}
+              </div>
+            )}
+          </div>
+        )}
+        
         <button 
-          onClick={() => onMint(displayId)}
-          className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-purple-500/25 active:scale-95"
+          onClick={() => onMint(nft.id)}
+          className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-purple-500/25 active:scale-95 mt-auto"
         >
-          Mint NFT
+          View Details
         </button>
       </div>
     </div>
@@ -94,95 +124,38 @@ const NFTCardSkeleton = () => {
 
 // Main NFT Gallery Component
 const NFTGallery = () => {
-  const [nfts, setNfts] = useState<Array<NFTMetadata | null>>([]);
+  const [nfts, setNfts] = useState<NFTResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [isMinting, setIsMinting] = useState(false);
-  const [mintingTokenId, setMintingTokenId] = useState<number | null>(null);
+  const [stats, setStats] = useState<any>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState<string | null>(null);
 
-  // Wagmi hooks for wallet management
   const { address, isConnected } = useAccount();
-  const { connect, connectors, isPending } = useConnect();
-  const { disconnect } = useDisconnect();
 
-  // Wallet connection handler
-  const handleConnect = () => {
-    const injectedConnector = connectors.find(connector => connector.id === 'injected');
-    if (injectedConnector) {
-      connect({ connector: injectedConnector });
-    }
+  // Function to handle NFT interaction
+  const handleNFTInteraction = async (nftId: string) => {
+    // For now, just show an alert. In a real app, this could open a modal or navigate to detail page
+    alert(`Viewing NFT: ${nftId}`);
   };
 
-  // Function to handle minting
-  const handleMint = async (tokenId: number) => {
-    if (!isConnected) {
-      alert('Please connect your wallet first');
-      return;
-    }
-    
-    try {
-      setIsMinting(true);
-      setMintingTokenId(tokenId);
-      
-      // Simulate minting transaction
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      alert(`Successfully minted NFT #${tokenId}!`);
-    } catch (err) {
-      console.error('Error minting NFT:', err);
-      alert('Failed to mint NFT. Please try again.');
-    } finally {
-      setIsMinting(false);
-      setMintingTokenId(null);
-    }
-  };
-  
-  // Generate dummy NFT data for demonstration
-  const generateDummyNFTs = (page: number, count: number): NFTMetadata[] => {
-    const startId = (page - 1) * count + 1;
-    return Array.from({ length: count }, (_, i) => {
-      const id = startId + i;
-      const rarities = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary'];
-      const styles = ['Abstract', 'Pixel', 'Surreal', 'Minimalist', 'Psychedelic'];
-      const colors = ['Vibrant', 'Pastel', 'Monochrome', 'Neon', 'Earth'];
-      
-      return {
-        name: `Ethereal Dreams #${id}`,
-        description: `A mesmerizing digital artwork that captures the essence of imagination and creativity. This piece represents the ${id}th creation in our exclusive collection.`,
-        image: `https://picsum.photos/500/500?random=${id}`,
-        tokenId: id,
-        attributes: [
-          { trait_type: 'Rarity', value: rarities[id % 5] },
-          { trait_type: 'Style', value: styles[id % 5] },
-          { trait_type: 'Palette', value: colors[id % 5] },
-          { trait_type: 'Power', value: Math.floor(Math.random() * 1000) + 1 },
-          { trait_type: 'Edition', value: Math.floor((id - 1) / 100) + 1 },
-          { trait_type: 'Rarity Score', value: Math.floor(Math.random() * 100) + 1 }
-        ]
-      };
-    });
-  };
-
-  // Function to fetch NFTs
+  // Function to fetch NFTs from API
   const fetchNFTs = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const dummyData = generateDummyNFTs(page, 20);
+      const result = await apiClient.getNFTs(page - 1, 20);
       
       if (page === 1) {
-        setNfts(dummyData);
+        setNfts(result.data);
       } else {
-        setNfts(prev => [...prev, ...dummyData]);
+        setNfts(prev => [...prev, ...result.data]);
       }
       
-      setHasMore(page < 5);
+      setHasMore(result.data.length === 20);
     } catch (err) {
       console.error('Error fetching NFTs:', err);
       setError('Failed to load NFTs. Please try again.');
@@ -191,41 +164,30 @@ const NFTGallery = () => {
     }
   };
 
+  // Function to fetch collection stats
+  const fetchStats = async () => {
+    setStatsLoading(true);
+    setStatsError(null);
+    try {
+      // Use a sample collection ID for demo
+      const collectionId = '0x8a90cab2b38dba80c64b7734e58ee1db38b8992e';
+      const data = await apiClient.getCollectionMetrics(collectionId);
+      setStats(data.collections?.[0] || null);
+    } catch (err: any) {
+      setStatsError(err.message || 'Error fetching stats');
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchNFTs();
   }, [page]);
 
-  // Wallet Button Component
-  const WalletButton = () => {
-    if (isConnected && address) {
-      return (
-        <div className="flex items-center gap-4">
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-2">
-            <span className="text-slate-300 text-sm font-medium">
-              {address.slice(0, 6)}...{address.slice(-4)}
-            </span>
-          </div>
-          <button 
-            onClick={() => disconnect()}
-            className="bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-400 hover:text-red-300 font-medium py-2.5 px-5 rounded-xl transition-all duration-300"
-          >
-            Disconnect
-          </button>
-        </div>
-      );
-    }
-    
-    return (
-      <button 
-        onClick={handleConnect}
-        disabled={isPending}
-        className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-emerald-500/25"
-      >
-        {isPending ? 'Connecting...' : 'Connect Wallet'}
-      </button>
-    );
-  };
-  
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
   // Display loading state on initial load
   if (loading && page === 1) {
     return (
@@ -240,7 +202,6 @@ const NFTGallery = () => {
               </h1>
             </div>
             <div className="flex-shrink-0">
-              {/* <WalletButton /> */}
               <ConnectButton /> 
             </div>
           </div>
@@ -290,23 +251,19 @@ const NFTGallery = () => {
       <div className="absolute inset-0 bg-gradient-to-r from-purple-900/20 to-pink-900/20" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-purple-900/30 via-transparent to-transparent" />
       
-      <div className="relative z-10 container mx-auto px-6 py-12">
-        {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-12">
-          <div className="mb-8 lg:mb-0">
+      <div className="relative z-10">
+        <Navigation />
+        
+        <div className="container mx-auto px-6 py-12">
+          {/* Header */}
+          <div className="mb-12">
             <h1 className="text-5xl lg:text-6xl font-bold bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent mb-4">
-              Ethereal Dreams
+              NFT Gallery
             </h1>
             <p className="text-slate-400 text-lg max-w-md leading-relaxed">
               Discover extraordinary digital art pieces crafted by visionary artists from around the world
             </p>
           </div>
-          
-          <div className="flex-shrink-0">
-            {/* <WalletButton /> */}
-            <ConnectButton />
-          </div>
-        </div>
         
         {/* Connection Status Banner */}
         {isConnected && address && (
@@ -314,7 +271,7 @@ const NFTGallery = () => {
             <div className="flex items-center justify-center gap-3">
               <div className="w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></div>
               <span className="text-emerald-300 font-medium">
-                Wallet Connected - Ready to mint NFTs!
+                Wallet Connected - Ready to explore NFTs!
               </span>
             </div>
           </div>
@@ -322,18 +279,32 @@ const NFTGallery = () => {
         
         {/* Collection Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-          {[
-            { label: 'Total Items', value: '100', icon: '🎨' },
-            { label: 'Unique Owners', value: '75', icon: '👥' },
-            { label: 'Floor Price', value: '0.1 ETH', icon: '💎' },
-            { label: 'Total Volume', value: '15.7 ETH', icon: '📈' }
+          {statsLoading ? (
+            [1,2,3,4].map(i => (
+              <div key={i} className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 text-center animate-pulse">
+                <div className="text-2xl mb-2">⏳</div>
+                <h3 className="text-slate-400 text-sm font-medium uppercase tracking-wide mb-1">Loading...</h3>
+                <p className="text-white text-2xl font-bold">--</p>
+              </div>
+            ))
+          ) : statsError ? (
+            <div className="col-span-4 bg-red-500/10 border border-red-500/20 rounded-2xl p-6 text-center">
+              <div className="text-2xl mb-2">⚠️</div>
+              <h3 className="text-red-400 text-sm font-medium uppercase tracking-wide mb-1">Error</h3>
+              <p className="text-white text-2xl font-bold">{statsError}</p>
+            </div>
+          ) : stats ? ([
+            { label: 'Total Items', value: stats.tokenCount || '--', icon: '🎨' },
+            { label: 'Unique Owners', value: stats.ownerCount || '--', icon: '👥' },
+            { label: 'Floor Price', value: stats.floorAskPrice ? `${stats.floorAskPrice} ETH` : '--', icon: '💎' },
+            { label: 'Total Volume', value: stats.volume?.allTime ? `${stats.volume.allTime} ETH` : '--', icon: '📈' }
           ].map((stat, index) => (
             <div key={index} className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 text-center hover:bg-white/10 transition-all duration-300">
               <div className="text-2xl mb-2">{stat.icon}</div>
               <h3 className="text-slate-400 text-sm font-medium uppercase tracking-wide mb-1">{stat.label}</h3>
               <p className="text-white text-2xl font-bold">{stat.value}</p>
             </div>
-          ))}
+          ))) : null}
         </div>
         
         {nfts.length === 0 && !loading ? (
@@ -345,18 +316,14 @@ const NFTGallery = () => {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-              {nfts.map((nft, index) => {
-                if (!nft) return <NFTCardSkeleton key={index} />;
-                return (
-                  <NFTCard 
-                    key={nft.tokenId || index}
-                    metadata={nft} 
-                    tokenId={index} 
-                    onMint={handleMint} 
-                  />
-                );
-              })}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 items-stretch">
+              {nfts.map((nft) => (
+                <NFTCard 
+                  key={nft.id}
+                  nft={nft} 
+                  onMint={handleNFTInteraction} 
+                />
+              ))}
               
               {loading && page > 1 && (
                 <>
@@ -387,21 +354,7 @@ const NFTGallery = () => {
             )}
           </>
         )}
-        
-        {/* Minting overlay */}
-        {isMinting && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-8 max-w-sm w-full mx-6 text-center">
-              <div className="relative mb-6">
-                <div className="w-20 h-20 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto"></div>
-                <div className="absolute inset-0 w-20 h-20 border-4 border-pink-500/30 border-b-pink-500 rounded-full animate-spin mx-auto" style={{ animationDirection: 'reverse' }}></div>
-              </div>
-              <h3 className="text-white text-xl font-bold mb-2">Minting in Progress</h3>
-              <p className="text-slate-300 mb-2">NFT #{mintingTokenId}</p>
-              <p className="text-slate-400 text-sm">Please confirm the transaction in your wallet</p>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );
